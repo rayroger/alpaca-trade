@@ -89,3 +89,19 @@ class DailyTradingBot:
                 side=OrderSide.BUY,
                 time_in_force=TimeInForce.DAY
             )
+            
+            order = self.trading_client.submit_order(market_order_data)
+            
+            return {
+                'symbol': symbol,
+                'action': 'BUY',
+                'reason': reason,
+                'shares': shares,
+                'price': current_price,
+                'order_id': order.id,
+                'status': 'SUBMITTED'
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error placing buy order for {symbol}: {e}")
+            raise
