@@ -39,5 +39,6 @@ logs/
 # Trading reports
 trading_report_*.json
 
-# Environment variables
+# Environment
 .env
+.env.local

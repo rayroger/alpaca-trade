@@ -44,6 +44,16 @@ Install required packages from `requirements.txt`:
 pip install -r requirements.txt
 ```
 
+### Configuration
+Set up environment variables as described in the [Environment Variables](#environment-variables) section below.
+
+You can verify your configuration is correct by running:
+```bash
+python verify_config.py
+```
+
+For detailed setup instructions, see [CONFIGURATION.md](CONFIGURATION.md).
+
 ---
 
 ## Usage
@@ -67,13 +77,26 @@ The bot auto-adjusts logging and execution policies when `GITHUB_ACTIONS=true`.
 
 ## Environment Variables
 To configure the bot, export the following variables:
-| Variable         | Description                           | Example Value   |
-|-------------------|---------------------------------------|-----------------|
-| `ALPACA_API_KEY`  | Alpaca API Key                       | `your_api_key`  |
-| `ALPACA_SECRET`   | Alpaca Secret Key                    | `your_secret`   |
-| `TRADING_SYMBOLS` | Symbols to trade (comma-separated)   | `AAPL,GOOG,TSLA`|
-| `CI_CD_ACTIONS`   | CI/CD indicator                      | `true`          |
-| `DRY_RUN`         | Dry-run mode for simulation          | `true`          |
+
+### Required Variables
+| Variable              | Description                           | Example Value   |
+|-----------------------|---------------------------------------|-----------------|
+| `APCA_API_KEY_ID`     | Alpaca API Key ID                    | `your_api_key`  |
+| `APCA_API_SECRET_KEY` | Alpaca API Secret Key                | `your_secret`   |
+
+### Optional Variables
+| Variable              | Description                           | Default Value   |
+|-----------------------|---------------------------------------|-----------------|
+| `TRADING_SYMBOLS`     | Symbols to trade (comma-separated)   | `AAPL,GOOG,TSLA`|
+| `APCA_PAPER`          | Use paper trading (true/false)       | `true`          |
+| `DRY_RUN`             | Dry-run mode for simulation          | `false`         |
+| `CI_CD_ACTIONS`       | CI/CD indicator                      | `false`         |
+| `LOG_LEVEL`           | Logging level                        | `INFO`          |
+| `RUN_ENV`             | Runtime environment                  | `local`         |
+
+**Note:** The configuration supports both naming conventions:
+- `APCA_API_KEY_ID` or `ALPACA_API_KEY`
+- `APCA_API_SECRET_KEY` or `ALPACA_SECRET`
 
 ---
 
