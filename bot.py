@@ -1,8 +1,9 @@
 # bot.py
 import os
 import logging
+import time
 import pytz
-from datetime import datetime, time
+from datetime import datetime, time as datetime_time
 import holidays
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import MarketOrderRequest
@@ -60,8 +61,8 @@ class DailyTradingBot:
             self.logger.warning(f"Could not check market status: {e}")
             # If we can't check, assume market is open if weekday
             # and within market hours
-            market_open = time(9, 30)
-            market_close = time(16, 0)
+            market_open = datetime_time(9, 30)
+            market_close = datetime_time(16, 0)
             current_time = now_et.time()
             
             is_open = market_open <= current_time <= market_close
@@ -124,7 +125,6 @@ class DailyTradingBot:
                 
                 # Rate limiting: wait 1 second between trades
                 # to avoid hitting API limits
-                import time
                 time.sleep(1)
                 
             except Exception as e:
