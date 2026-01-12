@@ -44,6 +44,16 @@ Install required packages from `requirements.txt`:
 pip install -r requirements.txt
 ```
 
+### Configuration
+Set up environment variables as described in the [Environment Variables](#environment-variables) section below.
+
+You can verify your configuration is correct by running:
+```bash
+python verify_config.py
+```
+
+For detailed setup instructions, see [CONFIGURATION.md](CONFIGURATION.md).
+
 ---
 
 ## Usage
