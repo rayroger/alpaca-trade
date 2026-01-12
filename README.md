@@ -72,7 +72,7 @@ To configure the bot, export the following variables:
 | `ALPACA_API_KEY`  | Alpaca API Key                       | `your_api_key`  |
 | `ALPACA_SECRET`   | Alpaca Secret Key                    | `your_secret`   |
 | `TRADING_SYMBOLS` | Symbols to trade (comma-separated)   | `AAPL,GOOG,TSLA`|
-| `GITHUB_ACTIONS`  | CI/CD indicator                      | `true`          |
+| `CI_CD_ACTIONS`   | CI/CD indicator                      | `true`          |
 | `DRY_RUN`         | Dry-run mode for simulation          | `true`          |
 
 ---
