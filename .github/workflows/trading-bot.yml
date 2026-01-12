@@ -40,11 +40,16 @@ jobs:
         
     - name: Run Trading Bot
       env:
+        # Alpaca API credentials (using APCA_* naming convention)
         APCA_API_KEY_ID: ${{ secrets.APCA_API_KEY_ID }}
         APCA_API_SECRET_KEY: ${{ secrets.APCA_API_SECRET_KEY }}
         APCA_PAPER: true
-        LOG_LEVEL: ${{ inputs.log-level }}
-        DRY_RUN: ${{ inputs.dry-run }}
+        # Trading configuration
+        TRADING_SYMBOLS: ${{ vars.TRADING_SYMBOLS || 'AAPL,GOOG,TSLA' }}
+        # Execution settings
+        LOG_LEVEL: ${{ inputs.log-level || 'INFO' }}
+        DRY_RUN: ${{ inputs.dry-run || 'false' }}
+        CI_CD_ACTIONS: 'true'
         RUN_ENV: 'github'
       run: |
         python main.py
