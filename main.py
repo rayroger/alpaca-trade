@@ -35,7 +35,7 @@ def main():
     
     try:
         # Check if running in GitHub Actions
-        is_github = os.getenv('GITHUB_ACTIONS') == 'true'
+        is_github = os.getenv('CI_CD_ACTIONS') == 'true'
         dry_run = os.getenv('DRY_RUN', 'false').lower() == 'true'
         
         logger.info(f"Starting trading bot - GitHub: {is_github}, Dry Run: {dry_run}")
