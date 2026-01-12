@@ -20,6 +20,10 @@ class DailyTradingBot:
         self.config = config
         self.logger = logging.getLogger(__name__)
         
+        # Market hours constants (Eastern Time)
+        self.MARKET_OPEN_TIME = datetime_time(9, 30)
+        self.MARKET_CLOSE_TIME = datetime_time(16, 0)
+        
         # Initialize Alpaca clients
         self.trading_client = TradingClient(
             api_key=config.ALPACA_API_KEY,
@@ -61,11 +65,9 @@ class DailyTradingBot:
             self.logger.warning(f"Could not check market status: {e}")
             # If we can't check, assume market is open if weekday
             # and within market hours
-            market_open = datetime_time(9, 30)
-            market_close = datetime_time(16, 0)
             current_time = now_et.time()
             
-            is_open = market_open <= current_time <= market_close
+            is_open = self.MARKET_OPEN_TIME <= current_time <= self.MARKET_CLOSE_TIME
             self.logger.info(f"Assuming market is {'open' if is_open else 'closed'} based on time")
             return is_open
     
@@ -98,15 +100,22 @@ class DailyTradingBot:
             raise
     
     def generate_signals(self, symbol):
-        """Generate trading signals for a symbol"""
-        # Placeholder logic - in real implementation, this would analyze market data
-        # For now, return empty signals
+        """Generate trading signals for a symbol
+        
+        TODO: Implement actual signal generation logic.
+        This is a placeholder that returns no signals.
+        In production, this should analyze market data using:
+        - Technical indicators (RSI, MACD, moving averages, etc.)
+        - Volume analysis
+        - News sentiment
+        - Price patterns
+        """
         self.logger.info(f"Generating signals for {symbol}")
         
-        # This is a placeholder - implement your actual signal logic here
-        # For example, you might check technical indicators, news sentiment, etc.
+        # Placeholder - no signals generated yet
+        # Implement your actual signal logic here
         
-        return []  # Return empty list for now - no trades
+        return []  # Return empty list - no trades until logic is implemented
     
     def execute_trades(self, symbol, signals):
         """Execute trades with rate limiting for GitHub Actions"""

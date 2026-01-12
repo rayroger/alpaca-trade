@@ -8,9 +8,9 @@ class Config:
     
     def __init__(self):
         # Alpaca API credentials
-        # Support both naming conventions: ALPACA_* and APCA_*
-        self.ALPACA_API_KEY = os.getenv('ALPACA_API_KEY') or os.getenv('APCA_API_KEY_ID')
-        self.ALPACA_SECRET = os.getenv('ALPACA_SECRET') or os.getenv('APCA_API_SECRET_KEY')
+        # Support both naming conventions, prioritizing the new APCA_* convention
+        self.ALPACA_API_KEY = os.getenv('APCA_API_KEY_ID') or os.getenv('ALPACA_API_KEY')
+        self.ALPACA_SECRET = os.getenv('APCA_API_SECRET_KEY') or os.getenv('ALPACA_SECRET')
         
         # Trading symbols - comma-separated list
         symbols_str = os.getenv('TRADING_SYMBOLS', 'AAPL,GOOG,TSLA')

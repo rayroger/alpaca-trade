@@ -119,7 +119,7 @@ def main():
     print("CONFIGURATION TEST:")
     print("-" * 70)
     try:
-        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        # Import config using standard import (works since script is in same dir as config.py)
         from config import Config
         
         config = Config()
