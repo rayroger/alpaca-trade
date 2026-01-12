@@ -51,7 +51,7 @@ jobs:
         
     - name: Upload logs
       if: always()  # Always upload logs, even on failure
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: trading-logs
         path: |
