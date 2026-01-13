@@ -17,6 +17,33 @@ on:
         required: false
         default: 'false'
         type: boolean
+      use-dynamic-selection:
+        description: 'Use dynamic stock selection'
+        required: false
+        default: 'false'
+        type: boolean
+      selection-method:
+        description: 'Stock selection method (diversified, high_volume, top_gainers, mixed)'
+        required: false
+        default: 'diversified'
+        type: choice
+        options:
+          - diversified
+          - high_volume
+          - top_gainers
+          - top_losers
+          - mixed
+          - broker_all
+      use-broker-universe:
+        description: 'Retrieve stock universe from broker (instead of predefined list)'
+        required: false
+        default: 'false'
+        type: boolean
+      broker-exchanges:
+        description: 'Filter broker universe by exchanges (comma-separated: NYSE,NASDAQ,AMEX)'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   issues: write
@@ -49,6 +76,12 @@ jobs:
         APCA_PAPER: true
         # Trading configuration
         TRADING_SYMBOLS: ${{ vars.TRADING_SYMBOLS || 'AAPL,GOOG,TSLA' }}
+        # Dynamic stock selection
+        USE_DYNAMIC_STOCK_SELECTION: ${{ inputs.use-dynamic-selection || 'false' }}
+        STOCK_SELECTION_METHOD: ${{ inputs.selection-method || 'diversified' }}
+        STOCK_SELECTION_LIMIT: '10'
+        USE_BROKER_STOCK_UNIVERSE: ${{ inputs.use-broker-universe || 'false' }}
+        BROKER_EXCHANGES: ${{ inputs.broker-exchanges || '' }}
         # Execution settings
         LOG_LEVEL: ${{ inputs.log-level || 'INFO' }}
         DRY_RUN: ${{ inputs.dry-run || 'false' }}
@@ -66,6 +99,8 @@ jobs:
           logs/
           trading_report_*.json
           daily_report_*.json
+          daily_summary_*.md
+          reports/
         retention-days: 7
         
     - name: Send notification on failure
