@@ -19,15 +19,32 @@ A daily trading bot leveraging Alpaca's API for **paper trading** and **daily pr
 ---
 
 ## Features
-- **Daily Market Check**: Automatically skips weekends and public holidays.
-- **Signal Generation**: Analyzes buy/sell signals for each symbol based on pre-configured logic.
-- **Trade Execution**:
-  - Executes trades sequentially with API rate-limiting.
-  - Dry-run option for testing without real trade placements.
-- **GitHub Actions Integration**:
-  - Detects CI/CD environments and adapts behavior (e.g., saving logs).
-- **Logging and Report Generation**:
-  - Detailed JSON reports for executed trades and runtime logs.
+Alpaca Daily Trading Bot" implements a structured daily trading logic using Alpaca’s API. Here's a brief overview based on the retrieved code:
+
+Configuration and Initialization:
+
+The bot uses a Config class to read API keys, trading symbols, and other settings from environment variables.
+Supports both live trading and "dry-run" (simulation/testing mode).
+Daily Trading Procedure:
+
+Trades are only attempted on weekdays and skipped on public holidays or market-closed days using Alpaca's market clock.
+The DailyTradingBot initialization prepares Alpaca clients for data and trading.
+Signal Generation:
+
+The generate_signals method analyzes pre-configured trading symbols for buy/sell signals. Placeholder logic hints at using technical indicators, volume analysis, and price patterns in its full implementation.
+Trade Execution:
+
+If signals exist, trades are executed sequentially, adhering to rate-limiting policies.
+Includes implementation of place_buy_order and place_sell_order with error handling.
+Handles insufficient buying power, missing positions, or other unexpected conditions gracefully.
+GitHub Actions Integration:
+
+The bot is integrated with CI/CD pipelines for automation, logging, and better operational reliability.
+Logs and JSON reports of trading activity (trading_report_YYYYMMDD.json) are generated.
+Logging and Error Reporting:
+
+Logs include account equity, buying power, trading signals, and runtime errors.
+Failures trigger GitHub issues to notify.
 
 ---
 
@@ -81,8 +98,8 @@ To configure the bot, export the following variables:
 ### Required Variables
 | Variable              | Description                           | Example Value   |
 |-----------------------|---------------------------------------|-----------------|
-| `APCA_API_KEY_ID`     | Alpaca API Key ID                    | `your_api_key`  |
-| `APCA_API_SECRET_KEY` | Alpaca API Secret Key                | `your_secret`   |
+| `ALPACA_API_KEY`      | Alpaca API Key ID                    | `your_api_key`  |
+| `ALPACA_API_SECRET`   | Alpaca API Secret Key                | `your_secret`   |
 
 ### Optional Variables
 | Variable              | Description                           | Default Value   |
