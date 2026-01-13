@@ -97,7 +97,10 @@ class DailyTradingBot:
     def get_current_price(self, symbol):
         """Get current price for a symbol"""
         try:
-            request = StockLatestQuoteRequest(symbol_or_symbols=symbol)
+            request = StockLatestQuoteRequest(
+                symbol_or_symbols=symbol,
+                feed='iex'  # Use IEX feed for free/paper accounts instead of SIP
+            )
             quote = self.data_client.get_stock_latest_quote(request)
             
             if symbol in quote:
@@ -118,7 +121,8 @@ class DailyTradingBot:
                 symbol_or_symbols=symbol,
                 timeframe=TimeFrame.Day,
                 start=start_date,
-                end=end_date
+                end=end_date,
+                feed='iex'  # Use IEX feed for free/paper accounts instead of SIP
             )
             
             bars = self.data_client.get_stock_bars(request)

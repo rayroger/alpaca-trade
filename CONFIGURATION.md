@@ -101,6 +101,20 @@ After setting up the configuration, you can verify it works by:
 2. Check the logs to ensure the bot initialized correctly
 3. Verify that all environment variables are loaded in the logs
 
+## Data Feed Configuration
+
+The bot is configured to use the **IEX (Investor's Exchange)** data feed, which is available for free Alpaca paper trading accounts. 
+
+**Important Notes:**
+- Free/paper Alpaca accounts do not have access to the SIP (Securities Information Processor) data feed
+- The bot automatically uses `feed='iex'` in all data requests to ensure compatibility with free accounts
+- If you upgrade to a paid subscription with SIP access, you can modify the `feed` parameter in `bot.py` if desired
+- IEX data is sufficient for most trading strategies and provides real-time market data
+
+If you encounter errors like `"subscription does not permit querying recent SIP data"`, verify that:
+1. You're using a paper trading account (`APCA_PAPER=true`)
+2. The bot code includes `feed='iex'` in data requests (already configured)
+
 ## Security Notes
 
 - Never commit API keys or secrets to the repository

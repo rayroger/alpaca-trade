@@ -25,6 +25,7 @@ Configuration and Initialization:
 
 The bot uses a Config class to read API keys, trading symbols, and other settings from environment variables.
 Supports both live trading and "dry-run" (simulation/testing mode).
+Uses IEX data feed for compatibility with free Alpaca paper trading accounts.
 Daily Trading Procedure:
 
 Trades are only attempted on weekdays and skipped on public holidays or market-closed days using Alpaca's market clock.
