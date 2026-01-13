@@ -158,6 +158,47 @@ Features:
 - Ensures diversification AND liquidity
 - Balanced approach
 
+#### 6. Broker Universe (`broker_all`) - NEW!
+Retrieves all tradable stocks directly from Alpaca broker
+
+```bash
+export STOCK_SELECTION_METHOD=broker_all
+export STOCK_SELECTION_LIMIT=50
+```
+
+Features:
+- Dynamically retrieves tradable stocks from Alpaca API
+- Always up-to-date with broker's available assets
+- Filters for tradable, fractionable, and shortable stocks
+- Can return hundreds or thousands of symbols
+- No need to maintain hardcoded lists
+
+### Broker-Retrieved Stock Universe - NEW!
+
+**You can now retrieve the stock universe from the broker instead of using the predefined list!**
+
+Set `USE_BROKER_STOCK_UNIVERSE=true` to retrieve tradable stocks from Alpaca's API:
+
+```bash
+export USE_DYNAMIC_STOCK_SELECTION=true
+export USE_BROKER_STOCK_UNIVERSE=true
+export STOCK_SELECTION_METHOD=top_gainers
+export STOCK_SELECTION_LIMIT=10
+```
+
+This will:
+1. Query Alpaca API for all tradable US equity stocks
+2. Apply your selection method (e.g., top_gainers) to the broker-retrieved universe
+3. Return the top 10 gainers from ALL tradable stocks (not just the predefined 80)
+
+**Benefits:**
+- Always up-to-date with broker's available stocks
+- No manual maintenance of stock lists
+- Access to the full market, not just 80 stocks
+- Automatic filtering for tradable, liquid stocks
+
+**Note:** The predefined 80-stock universe is still the default (faster, API-friendly). Enable broker retrieval when you want access to the full market.
+
 ### Stock Universe
 
 The bot can select from a universe of **80 major stocks** across 8 sectors:

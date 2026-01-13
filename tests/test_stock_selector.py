@@ -87,6 +87,73 @@ class TestDynamicStockSelector(unittest.TestCase):
         self.assertIn('Technology', info['sector_distribution'])
         self.assertIn('Financial', info['sector_distribution'])
     
+    def test_get_tradable_stocks_from_broker_no_client(self):
+        """Test broker retrieval without trading client"""
+        # Selector without trading client
+        selector = DynamicStockSelector(self.mock_data_client, None)
+        stocks = selector.get_tradable_stocks_from_broker()
+        
+        # Should return empty list
+        self.assertEqual(stocks, [])
+    
+    def test_get_tradable_stocks_from_broker_with_client(self):
+        """Test broker retrieval with trading client"""
+        # Mock trading client
+        mock_trading_client = Mock()
+        
+        # Mock assets
+        mock_asset1 = Mock()
+        mock_asset1.symbol = 'AAPL'
+        mock_asset1.tradable = True
+        mock_asset1.fractionable = True
+        mock_asset1.shortable = True
+        
+        mock_asset2 = Mock()
+        mock_asset2.symbol = 'MSFT'
+        mock_asset2.tradable = True
+        mock_asset2.fractionable = True
+        mock_asset2.shortable = True
+        
+        mock_asset3 = Mock()
+        mock_asset3.symbol = 'UNTRADABLE'
+        mock_asset3.tradable = False
+        mock_asset3.fractionable = False
+        mock_asset3.shortable = False
+        
+        mock_trading_client.get_all_assets.return_value = [mock_asset1, mock_asset2, mock_asset3]
+        
+        selector = DynamicStockSelector(self.mock_data_client, mock_trading_client)
+        stocks = selector.get_tradable_stocks_from_broker()
+        
+        # Should return only tradable stocks
+        self.assertIn('AAPL', stocks)
+        self.assertIn('MSFT', stocks)
+        self.assertNotIn('UNTRADABLE', stocks)
+        self.assertEqual(len(stocks), 2)
+    
+    def test_broker_universe_caching(self):
+        """Test that broker universe results are cached"""
+        mock_trading_client = Mock()
+        mock_asset = Mock()
+        mock_asset.symbol = 'AAPL'
+        mock_asset.tradable = True
+        mock_asset.fractionable = True
+        mock_asset.shortable = True
+        
+        mock_trading_client.get_all_assets.return_value = [mock_asset]
+        
+        selector = DynamicStockSelector(self.mock_data_client, mock_trading_client)
+        
+        # First call
+        stocks1 = selector.get_tradable_stocks_from_broker()
+        
+        # Second call with cache
+        stocks2 = selector.get_tradable_stocks_from_broker(use_cache=True)
+        
+        # Should only call API once due to caching
+        self.assertEqual(mock_trading_client.get_all_assets.call_count, 1)
+        self.assertEqual(stocks1, stocks2)
+    
     def test_stock_universe_structure(self):
         """Test that stock universe has expected structure"""
         self.assertIsInstance(self.selector.STOCK_UNIVERSE, dict)
@@ -97,6 +164,7 @@ class TestDynamicStockSelector(unittest.TestCase):
             self.assertIn(sector, self.selector.STOCK_UNIVERSE)
             self.assertIsInstance(self.selector.STOCK_UNIVERSE[sector], list)
             self.assertGreater(len(self.selector.STOCK_UNIVERSE[sector]), 0)
+
 
 
 if __name__ == '__main__':

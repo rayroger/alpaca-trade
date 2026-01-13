@@ -33,6 +33,12 @@ on:
           - top_gainers
           - top_losers
           - mixed
+          - broker_all
+      use-broker-universe:
+        description: 'Retrieve stock universe from broker (instead of predefined list)'
+        required: false
+        default: 'false'
+        type: boolean
 
 permissions:
   issues: write
@@ -69,6 +75,7 @@ jobs:
         USE_DYNAMIC_STOCK_SELECTION: ${{ inputs.use-dynamic-selection || 'false' }}
         STOCK_SELECTION_METHOD: ${{ inputs.selection-method || 'diversified' }}
         STOCK_SELECTION_LIMIT: '10'
+        USE_BROKER_STOCK_UNIVERSE: ${{ inputs.use-broker-universe || 'false' }}
         # Execution settings
         LOG_LEVEL: ${{ inputs.log-level || 'INFO' }}
         DRY_RUN: ${{ inputs.dry-run || 'false' }}

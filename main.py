@@ -61,16 +61,21 @@ def main():
         # Dynamic stock selection (if enabled)
         use_dynamic_selection = os.getenv('USE_DYNAMIC_STOCK_SELECTION', 'false').lower() == 'true'
         selection_method = os.getenv('STOCK_SELECTION_METHOD', 'diversified')
+        use_broker_universe = os.getenv('USE_BROKER_STOCK_UNIVERSE', 'false').lower() == 'true'
         
         if use_dynamic_selection:
             logger.info(f"Using dynamic stock selection with method: {selection_method}")
-            stock_selector = DynamicStockSelector(bot.data_client)
+            stock_selector = DynamicStockSelector(bot.data_client, bot.trading_client)
             
             # Select stocks based on method
             selected_stocks = stock_selector.select_stocks(
                 method=selection_method,
-                limit=int(os.getenv('STOCK_SELECTION_LIMIT', '10'))
+                limit=int(os.getenv('STOCK_SELECTION_LIMIT', '10')),
+                use_broker_universe=use_broker_universe
             )
+            
+            if use_broker_universe:
+                logger.info(f"Using broker-retrieved stock universe (dynamic)")
             
             # Get selection info
             selection_info = stock_selector.get_selection_info(selected_stocks)

@@ -12,6 +12,9 @@ import pytz
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockBarsRequest, StockLatestQuoteRequest
 from alpaca.data.timeframe import TimeFrame
+from alpaca.trading.client import TradingClient
+from alpaca.trading.requests import GetAssetsRequest
+from alpaca.trading.enums import AssetStatus, AssetClass
 
 
 class DynamicStockSelector:
@@ -29,15 +32,18 @@ class DynamicStockSelector:
         'Materials': ['LIN', 'APD', 'ECL', 'SHW', 'DD', 'NEM', 'FCX', 'NUE', 'VMC', 'MLM']
     }
     
-    def __init__(self, data_client: StockHistoricalDataClient):
+    def __init__(self, data_client: StockHistoricalDataClient, trading_client: Optional[TradingClient] = None):
         """
         Initialize the stock selector
         
         Args:
             data_client: Alpaca data client for fetching market data
+            trading_client: Optional Alpaca trading client for retrieving tradable assets from broker
         """
         self.data_client = data_client
+        self.trading_client = trading_client
         self.logger = logging.getLogger(__name__)
+        self._broker_universe_cache = None  # Cache for broker-retrieved universe
     
     def get_all_symbols(self) -> List[str]:
         """Get all symbols from the stock universe"""
@@ -45,6 +51,56 @@ class DynamicStockSelector:
         for sector_stocks in self.STOCK_UNIVERSE.values():
             all_symbols.extend(sector_stocks)
         return list(set(all_symbols))  # Remove duplicates
+    
+    def get_tradable_stocks_from_broker(self, use_cache: bool = True) -> List[str]:
+        """
+        Retrieve list of tradable US equity stocks from Alpaca broker
+        
+        Args:
+            use_cache: If True, uses cached results to avoid repeated API calls
+            
+        Returns:
+            List of tradable stock symbols from broker
+            
+        Note:
+            Requires trading_client to be set during initialization.
+            Returns empty list if trading_client is not available.
+        """
+        if not self.trading_client:
+            self.logger.warning("Trading client not available. Cannot retrieve stocks from broker.")
+            return []
+        
+        # Return cached results if available
+        if use_cache and self._broker_universe_cache is not None:
+            return self._broker_universe_cache
+        
+        try:
+            self.logger.info("Retrieving tradable stocks from Alpaca broker...")
+            
+            # Request tradable US equities
+            request = GetAssetsRequest(
+                status=AssetStatus.ACTIVE,
+                asset_class=AssetClass.US_EQUITY
+            )
+            
+            assets = self.trading_client.get_all_assets(request)
+            
+            # Filter for tradable stocks only and extract symbols
+            tradable_symbols = [
+                asset.symbol for asset in assets 
+                if asset.tradable and asset.fractionable and asset.shortable
+            ]
+            
+            self.logger.info(f"Retrieved {len(tradable_symbols)} tradable stocks from broker")
+            
+            # Cache the results
+            self._broker_universe_cache = tradable_symbols
+            
+            return tradable_symbols
+            
+        except Exception as e:
+            self.logger.error(f"Error retrieving stocks from broker: {e}")
+            return []
     
     def get_high_volume_stocks(self, min_volume: int = 5000000, limit: int = 20) -> List[str]:
         """
@@ -204,20 +260,45 @@ class DynamicStockSelector:
         self,
         method: str = 'diversified',
         limit: int = 10,
+        use_broker_universe: bool = False,
         **kwargs
     ) -> List[str]:
         """
         Select stocks using the specified method
         
         Args:
-            method: Selection method - 'diversified', 'high_volume', 'top_gainers', 'top_losers', 'mixed'
+            method: Selection method - 'diversified', 'high_volume', 'top_gainers', 'top_losers', 'mixed', 'broker_all'
             limit: Maximum number of stocks to return
+            use_broker_universe: If True, retrieves tradable stocks from broker instead of using predefined universe
             **kwargs: Additional arguments for specific methods
             
         Returns:
             List of selected stock symbols
         """
-        self.logger.info(f"Selecting stocks using method: {method}")
+        self.logger.info(f"Selecting stocks using method: {method}, use_broker_universe: {use_broker_universe}")
+        
+        # Special method to return broker universe
+        if method == 'broker_all':
+            broker_stocks = self.get_tradable_stocks_from_broker()
+            return broker_stocks[:limit] if broker_stocks else []
+        
+        # Optionally override the stock universe with broker-retrieved stocks
+        if use_broker_universe:
+            broker_stocks = self.get_tradable_stocks_from_broker()
+            if broker_stocks:
+                # Temporarily replace get_all_symbols to use broker stocks
+                original_get_all_symbols = self.get_all_symbols
+                self.get_all_symbols = lambda: broker_stocks
+                try:
+                    result = self._select_stocks_internal(method, limit, **kwargs)
+                    return result
+                finally:
+                    self.get_all_symbols = original_get_all_symbols
+        
+        return self._select_stocks_internal(method, limit, **kwargs)
+    
+    def _select_stocks_internal(self, method: str, limit: int, **kwargs) -> List[str]:
+        """Internal method for stock selection logic"""
         
         if method == 'diversified':
             stocks_per_sector = kwargs.get('stocks_per_sector', 2)

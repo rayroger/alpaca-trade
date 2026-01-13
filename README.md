@@ -111,6 +111,7 @@ To configure the bot, export the following variables:
 | `USE_DYNAMIC_STOCK_SELECTION`  | Enable dynamic stock selection                  | `false`         |
 | `STOCK_SELECTION_METHOD`       | Stock selection method (see below)              | `diversified`   |
 | `STOCK_SELECTION_LIMIT`        | Max stocks for dynamic selection                | `10`            |
+| `USE_BROKER_STOCK_UNIVERSE`    | Retrieve stocks from broker API                 | `false`         |
 | `CI_CD_ACTIONS`                | CI/CD indicator                                 | `false`         |
 | `LOG_LEVEL`                    | Logging level                                   | `INFO`          |
 | `RUN_ENV`                      | Runtime environment                             | `local`         |
@@ -122,6 +123,19 @@ When `USE_DYNAMIC_STOCK_SELECTION=true`, the bot can select stocks using these m
 - **`top_gainers`**: Select stocks with highest recent price increases
 - **`top_losers`**: Select stocks with highest recent price decreases (for potential rebounds)
 - **`mixed`**: Combination of diversified and high-volume selection
+- **`broker_all`**: Retrieve all tradable stocks from broker (NEW!)
+
+### Broker-Retrieved Stock Universe (NEW!)
+Set `USE_BROKER_STOCK_UNIVERSE=true` to dynamically retrieve tradable stocks from Alpaca's broker API instead of using the predefined 80-stock universe. This queries Alpaca for all tradable US equity stocks and applies your selection method to the full market.
+
+Example:
+```bash
+export USE_DYNAMIC_STOCK_SELECTION=true
+export USE_BROKER_STOCK_UNIVERSE=true
+export STOCK_SELECTION_METHOD=top_gainers
+export STOCK_SELECTION_LIMIT=10
+# Finds top 10 gainers from ALL tradable stocks on Alpaca
+```
 
 **Note:** The configuration supports both naming conventions:
 - `APCA_API_KEY_ID` or `ALPACA_API_KEY`
