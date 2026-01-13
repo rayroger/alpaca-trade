@@ -38,6 +38,12 @@ logs/
 
 # Trading reports
 trading_report_*.json
+daily_report_*.json
+daily_report_*.html
+daily_summary_*.md
+
+# Reports directory (generated files)
+reports/
 
 # Environment
 .env

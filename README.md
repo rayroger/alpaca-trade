@@ -103,14 +103,25 @@ To configure the bot, export the following variables:
 | `ALPACA_API_SECRET`   | Alpaca API Secret Key                | `your_secret`   |
 
 ### Optional Variables
-| Variable              | Description                           | Default Value   |
-|-----------------------|---------------------------------------|-----------------|
-| `TRADING_SYMBOLS`     | Symbols to trade (comma-separated)   | `AAPL,GOOG,TSLA`|
-| `APCA_PAPER`          | Use paper trading (true/false)       | `true`          |
-| `DRY_RUN`             | Dry-run mode for simulation          | `false`         |
-| `CI_CD_ACTIONS`       | CI/CD indicator                      | `false`         |
-| `LOG_LEVEL`           | Logging level                        | `INFO`          |
-| `RUN_ENV`             | Runtime environment                  | `local`         |
+| Variable                       | Description                                      | Default Value   |
+|--------------------------------|--------------------------------------------------|-----------------|
+| `TRADING_SYMBOLS`              | Symbols to trade (comma-separated)              | `AAPL,GOOG,TSLA`|
+| `APCA_PAPER`                   | Use paper trading (true/false)                  | `true`          |
+| `DRY_RUN`                      | Dry-run mode for simulation                     | `false`         |
+| `USE_DYNAMIC_STOCK_SELECTION`  | Enable dynamic stock selection                  | `false`         |
+| `STOCK_SELECTION_METHOD`       | Stock selection method (see below)              | `diversified`   |
+| `STOCK_SELECTION_LIMIT`        | Max stocks for dynamic selection                | `10`            |
+| `CI_CD_ACTIONS`                | CI/CD indicator                                 | `false`         |
+| `LOG_LEVEL`                    | Logging level                                   | `INFO`          |
+| `RUN_ENV`                      | Runtime environment                             | `local`         |
+
+### Dynamic Stock Selection Methods
+When `USE_DYNAMIC_STOCK_SELECTION=true`, the bot can select stocks using these methods:
+- **`diversified`**: Select stocks across multiple sectors for diversification
+- **`high_volume`**: Select stocks with highest trading volume
+- **`top_gainers`**: Select stocks with highest recent price increases
+- **`top_losers`**: Select stocks with highest recent price decreases (for potential rebounds)
+- **`mixed`**: Combination of diversified and high-volume selection
 
 **Note:** The configuration supports both naming conventions:
 - `APCA_API_KEY_ID` or `ALPACA_API_KEY`
@@ -119,7 +130,33 @@ To configure the bot, export the following variables:
 ---
 
 ## Logging and Reports
-Logs are saved in the **logs/** directory, and JSON reports are stored as `trading_report_<YYYYMMDD>.json`.
+
+### Report Types
+The bot generates several types of reports:
+
+1. **Trading Logs** (`logs/trading_YYYYMMDD_HHMMSS.log`)
+   - Detailed execution logs with timestamps
+   - Account information, signals, and trade execution details
+
+2. **JSON Reports** (`trading_report_YYYYMMDD.json`, `daily_report_YYYYMMDD.json`)
+   - Machine-readable trading data
+   - Account metrics, signals, and trade details
+
+3. **HTML Reports** (`reports/daily_report_YYYYMMDD.html`)
+   - **Visual daily status reports with tables and charts**
+   - Account equity history visualization
+   - Buy/sell signals over time
+   - Symbol performance tables
+   - Historical trading summary
+
+4. **Markdown Summary** (`daily_summary_YYYYMMDD.md`)
+   - Quick-view text summary of daily trading activity
+   - Ideal for viewing in GitHub or text editors
+
+### Viewing Reports
+- HTML reports are uploaded as GitHub Actions artifacts and can be downloaded for viewing
+- Reports include interactive charts showing equity trends and signal distribution
+- All reports are stored in the repository (except those excluded by `.gitignore`)
 
 ---
 

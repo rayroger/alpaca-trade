@@ -11,6 +11,8 @@ sys.path.append(str(Path(__file__).parent))
 
 from bot import DailyTradingBot
 from config import Config
+from report_generator import DailyReportGenerator
+from stock_selector import DynamicStockSelector
 
 def setup_logging():
     """Configure logging for GitHub Actions"""
@@ -56,12 +58,37 @@ def main():
         logger.info(f"Account Equity: ${account_info['equity']:,.2f}")
         logger.info(f"Buying Power: ${account_info['buying_power']:,.2f}")
         
+        # Dynamic stock selection (if enabled)
+        use_dynamic_selection = os.getenv('USE_DYNAMIC_STOCK_SELECTION', 'false').lower() == 'true'
+        selection_method = os.getenv('STOCK_SELECTION_METHOD', 'diversified')
+        
+        if use_dynamic_selection:
+            logger.info(f"Using dynamic stock selection with method: {selection_method}")
+            stock_selector = DynamicStockSelector(bot.data_client)
+            
+            # Select stocks based on method
+            selected_stocks = stock_selector.select_stocks(
+                method=selection_method,
+                limit=int(os.getenv('STOCK_SELECTION_LIMIT', '10'))
+            )
+            
+            # Get selection info
+            selection_info = stock_selector.get_selection_info(selected_stocks)
+            logger.info(f"Dynamic selection: {selection_info['total_stocks']} stocks from {selection_info['sectors_represented']} sectors")
+            logger.info(f"Sector distribution: {selection_info['sector_distribution']}")
+            
+            # Override config symbols with dynamically selected stocks
+            trading_symbols = selected_stocks
+        else:
+            logger.info(f"Using predefined stock list: {', '.join(config.TRADING_SYMBOLS)}")
+            trading_symbols = config.TRADING_SYMBOLS
+        
         # Generate and execute signals
         trades_executed = []
         symbols_analyzed = {}
         all_signals = []
         
-        for symbol in config.TRADING_SYMBOLS:
+        for symbol in trading_symbols:
             signals, metadata = bot.generate_signals_with_metadata(symbol)
             symbols_analyzed[symbol] = metadata
             
@@ -101,6 +128,19 @@ def main():
         
         with open(daily_report_file, 'w') as f:
             json.dump(daily_report, f, indent=2)
+        
+        # Generate HTML report with charts and tables
+        logger.info("Generating visual HTML report...")
+        report_gen = DailyReportGenerator()
+        html_report_path = report_gen.save_html_report(daily_report)
+        logger.info(f"HTML report saved to {html_report_path}")
+        
+        # Generate markdown summary
+        md_summary = report_gen.generate_markdown_summary(daily_report)
+        md_file = f"daily_summary_{datetime.now().strftime('%Y%m%d')}.md"
+        with open(md_file, 'w') as f:
+            f.write(md_summary)
+        logger.info(f"Markdown summary saved to {md_file}")
             
         logger.info(f"Trading bot completed successfully.")
         logger.info(f"Report saved to {report_file}")
@@ -109,6 +149,11 @@ def main():
         # Log summary
         logger.info(f"Summary: {len(all_signals)} signals generated, {len(trades_executed)} trades executed")
         logger.info(f"Symbols analyzed: {len(symbols_analyzed)}, Symbols with signals: {daily_report['analysis']['symbols_with_signals']}")
+        
+        # Print dynamic stock selection info if enabled
+        if use_dynamic_selection:
+            logger.info(f"Dynamic stock selection method: {selection_method}")
+            logger.info(f"Stocks selected: {', '.join(trading_symbols)}")
         
     except Exception as e:
         logger.error(f"Trading bot failed: {str(e)}", exc_info=True)
