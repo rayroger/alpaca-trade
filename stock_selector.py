@@ -162,7 +162,7 @@ class DynamicStockSelector:
                     
                     bars = self.data_client.get_stock_bars(request)
                     
-                    if symbol in bars.data and len(bars.data[symbol]) >= period_days:
+                    if symbol in bars.data and len(bars.data[symbol]) > period_days:
                         bar_list = bars.data[symbol]
                         start_price = float(bar_list[-period_days - 1].close)
                         end_price = float(bar_list[-1].close)

@@ -63,7 +63,7 @@ class DailyReportGenerator:
                                 
                                 try:
                                     timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S,%f')
-                                except:
+                                except (ValueError, TypeError):
                                     continue
                                 
                                 log_data.append({
@@ -354,8 +354,18 @@ class DailyReportGenerator:
         if historical_reports is None:
             historical_reports = self.load_daily_reports(30)
         
-        # Ensure current report is in the list
-        all_reports = [report] + [r for r in historical_reports if r.get('date') != report.get('date')]
+        # Ensure current report is in the list (use set for deduplication by date)
+        report_date = report.get('date')
+        seen_dates = {report_date}
+        all_reports = [report]
+        
+        for r in historical_reports:
+            r_date = r.get('date')
+            if r_date not in seen_dates:
+                all_reports.append(r)
+                seen_dates.add(r_date)
+        
+        # Sort and limit
         all_reports = sorted(all_reports, key=lambda x: x.get('date', ''), reverse=True)[:30]
         
         date = report.get('date', 'Unknown')

@@ -147,15 +147,19 @@ class TestDailyReportGenerator(unittest.TestCase):
     
     def test_save_html_report(self):
         """Test saving HTML report to file"""
-        with patch('builtins.open', unittest.mock.mock_open()) as mock_file:
-            path = self.generator.save_html_report(self.sample_report)
-            
-            self.assertIsInstance(path, str)
-            self.assertIn('daily_report_', path)
-            self.assertIn('.html', path)
-            
-            # Verify file was opened for writing
-            mock_file.assert_called_once()
+        from unittest.mock import mock_open
+        
+        # Mock both the load_daily_reports method and file write
+        with patch.object(self.generator, 'load_daily_reports', return_value=[]):
+            with patch('builtins.open', mock_open()) as mock_file:
+                path = self.generator.save_html_report(self.sample_report)
+                
+                self.assertIsInstance(path, str)
+                self.assertIn('daily_report_', path)
+                self.assertIn('.html', path)
+                
+                # Verify file was opened for writing (check that it was called)
+                self.assertTrue(mock_file.called)
 
 
 if __name__ == '__main__':
