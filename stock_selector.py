@@ -14,7 +14,7 @@ from alpaca.data.requests import StockBarsRequest, StockLatestQuoteRequest
 from alpaca.data.timeframe import TimeFrame
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import GetAssetsRequest
-from alpaca.trading.enums import AssetStatus, AssetClass
+from alpaca.trading.enums import AssetStatus, AssetClass, AssetExchange
 
 
 class DynamicStockSelector:
@@ -52,12 +52,18 @@ class DynamicStockSelector:
             all_symbols.extend(sector_stocks)
         return list(set(all_symbols))  # Remove duplicates
     
-    def get_tradable_stocks_from_broker(self, use_cache: bool = True) -> List[str]:
+    def get_tradable_stocks_from_broker(
+        self, 
+        use_cache: bool = True, 
+        exchanges: Optional[List[str]] = None
+    ) -> List[str]:
         """
         Retrieve list of tradable US equity stocks from Alpaca broker
         
         Args:
             use_cache: If True, uses cached results to avoid repeated API calls
+            exchanges: Optional list of exchange names to filter by (e.g., ['NYSE', 'NASDAQ'])
+                      If None, retrieves from all exchanges. Valid values: NYSE, NASDAQ, AMEX, ARCA, BATS, etc.
             
         Returns:
             List of tradable stock symbols from broker
@@ -65,17 +71,29 @@ class DynamicStockSelector:
         Note:
             Requires trading_client to be set during initialization.
             Returns empty list if trading_client is not available.
+            
+        Example:
+            # Get stocks only from NYSE and NASDAQ
+            stocks = selector.get_tradable_stocks_from_broker(exchanges=['NYSE', 'NASDAQ'])
         """
         if not self.trading_client:
             self.logger.warning("Trading client not available. Cannot retrieve stocks from broker.")
             return []
         
-        # Return cached results if available
+        # Create cache key based on exchanges filter
+        cache_key = tuple(sorted(exchanges)) if exchanges else None
+        
+        # Return cached results if available and cache key matches
         if use_cache and self._broker_universe_cache is not None:
-            return self._broker_universe_cache
+            cached_key = getattr(self, '_broker_cache_key', None)
+            if cached_key == cache_key:
+                return self._broker_universe_cache
         
         try:
-            self.logger.info("Retrieving tradable stocks from Alpaca broker...")
+            if exchanges:
+                self.logger.info(f"Retrieving tradable stocks from Alpaca broker (exchanges: {', '.join(exchanges)})...")
+            else:
+                self.logger.info("Retrieving tradable stocks from Alpaca broker (all exchanges)...")
             
             # Request tradable US equities
             request = GetAssetsRequest(
@@ -85,16 +103,24 @@ class DynamicStockSelector:
             
             assets = self.trading_client.get_all_assets(request)
             
-            # Filter for tradable stocks only and extract symbols
-            tradable_symbols = [
-                asset.symbol for asset in assets 
-                if asset.tradable and asset.fractionable and asset.shortable
-            ]
+            # Filter for tradable stocks and optionally by exchange
+            tradable_symbols = []
+            for asset in assets:
+                if asset.tradable and asset.fractionable and asset.shortable:
+                    # Apply exchange filter if specified
+                    if exchanges:
+                        # Check if asset's exchange matches any of the requested exchanges
+                        asset_exchange = str(asset.exchange).replace('AssetExchange.', '')
+                        if asset_exchange in exchanges:
+                            tradable_symbols.append(asset.symbol)
+                    else:
+                        tradable_symbols.append(asset.symbol)
             
             self.logger.info(f"Retrieved {len(tradable_symbols)} tradable stocks from broker")
             
-            # Cache the results
+            # Cache the results with the cache key
             self._broker_universe_cache = tradable_symbols
+            self._broker_cache_key = cache_key
             
             return tradable_symbols
             
@@ -261,6 +287,7 @@ class DynamicStockSelector:
         method: str = 'diversified',
         limit: int = 10,
         use_broker_universe: bool = False,
+        broker_exchanges: Optional[List[str]] = None,
         **kwargs
     ) -> List[str]:
         """
@@ -270,21 +297,33 @@ class DynamicStockSelector:
             method: Selection method - 'diversified', 'high_volume', 'top_gainers', 'top_losers', 'mixed', 'broker_all'
             limit: Maximum number of stocks to return
             use_broker_universe: If True, retrieves tradable stocks from broker instead of using predefined universe
+            broker_exchanges: Optional list of exchanges to filter when using broker universe (e.g., ['NYSE', 'NASDAQ'])
             **kwargs: Additional arguments for specific methods
             
         Returns:
             List of selected stock symbols
+            
+        Example:
+            # Get top 10 gainers from NYSE/NASDAQ only
+            stocks = selector.select_stocks(
+                method='top_gainers', 
+                limit=10, 
+                use_broker_universe=True,
+                broker_exchanges=['NYSE', 'NASDAQ']
+            )
         """
         self.logger.info(f"Selecting stocks using method: {method}, use_broker_universe: {use_broker_universe}")
+        if broker_exchanges:
+            self.logger.info(f"Filtering to exchanges: {', '.join(broker_exchanges)}")
         
         # Special method to return broker universe
         if method == 'broker_all':
-            broker_stocks = self.get_tradable_stocks_from_broker()
+            broker_stocks = self.get_tradable_stocks_from_broker(exchanges=broker_exchanges)
             return broker_stocks[:limit] if broker_stocks else []
         
         # Optionally override the stock universe with broker-retrieved stocks
         if use_broker_universe:
-            broker_stocks = self.get_tradable_stocks_from_broker()
+            broker_stocks = self.get_tradable_stocks_from_broker(exchanges=broker_exchanges)
             if broker_stocks:
                 # Temporarily replace get_all_symbols to use broker stocks
                 original_get_all_symbols = self.get_all_symbols

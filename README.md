@@ -112,6 +112,7 @@ To configure the bot, export the following variables:
 | `STOCK_SELECTION_METHOD`       | Stock selection method (see below)              | `diversified`   |
 | `STOCK_SELECTION_LIMIT`        | Max stocks for dynamic selection                | `10`            |
 | `USE_BROKER_STOCK_UNIVERSE`    | Retrieve stocks from broker API                 | `false`         |
+| `BROKER_EXCHANGES`             | Filter broker stocks by exchange (NEW!)         | `` (all)        |
 | `CI_CD_ACTIONS`                | CI/CD indicator                                 | `false`         |
 | `LOG_LEVEL`                    | Logging level                                   | `INFO`          |
 | `RUN_ENV`                      | Runtime environment                             | `local`         |
@@ -128,7 +129,21 @@ When `USE_DYNAMIC_STOCK_SELECTION=true`, the bot can select stocks using these m
 ### Broker-Retrieved Stock Universe (NEW!)
 Set `USE_BROKER_STOCK_UNIVERSE=true` to dynamically retrieve tradable stocks from Alpaca's broker API instead of using the predefined 80-stock universe. This queries Alpaca for all tradable US equity stocks and applies your selection method to the full market.
 
-Example:
+#### Filter by Exchange (Performance Optimization)
+To reduce the number of stocks retrieved and improve performance, filter by specific exchanges using `BROKER_EXCHANGES`:
+
+```bash
+export USE_DYNAMIC_STOCK_SELECTION=true
+export USE_BROKER_STOCK_UNIVERSE=true
+export BROKER_EXCHANGES=NYSE,NASDAQ  # Only NYSE and NASDAQ stocks
+export STOCK_SELECTION_METHOD=top_gainers
+export STOCK_SELECTION_LIMIT=10
+# Finds top 10 gainers from NYSE/NASDAQ only (faster than scanning all exchanges)
+```
+
+**Supported exchanges:** NYSE, NASDAQ, AMEX, ARCA, BATS, and more.
+
+Example without filter (all exchanges):
 ```bash
 export USE_DYNAMIC_STOCK_SELECTION=true
 export USE_BROKER_STOCK_UNIVERSE=true

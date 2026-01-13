@@ -63,6 +63,10 @@ def main():
         selection_method = os.getenv('STOCK_SELECTION_METHOD', 'diversified')
         use_broker_universe = os.getenv('USE_BROKER_STOCK_UNIVERSE', 'false').lower() == 'true'
         
+        # Parse broker exchanges filter (comma-separated list)
+        broker_exchanges_str = os.getenv('BROKER_EXCHANGES', '')
+        broker_exchanges = [ex.strip().upper() for ex in broker_exchanges_str.split(',') if ex.strip()] if broker_exchanges_str else None
+        
         if use_dynamic_selection:
             logger.info(f"Using dynamic stock selection with method: {selection_method}")
             stock_selector = DynamicStockSelector(bot.data_client, bot.trading_client)
@@ -71,11 +75,15 @@ def main():
             selected_stocks = stock_selector.select_stocks(
                 method=selection_method,
                 limit=int(os.getenv('STOCK_SELECTION_LIMIT', '10')),
-                use_broker_universe=use_broker_universe
+                use_broker_universe=use_broker_universe,
+                broker_exchanges=broker_exchanges
             )
             
             if use_broker_universe:
-                logger.info(f"Using broker-retrieved stock universe (dynamic)")
+                if broker_exchanges:
+                    logger.info(f"Using broker-retrieved stock universe from exchanges: {', '.join(broker_exchanges)}")
+                else:
+                    logger.info(f"Using broker-retrieved stock universe (all exchanges)")
             
             # Get selection info
             selection_info = stock_selector.get_selection_info(selected_stocks)

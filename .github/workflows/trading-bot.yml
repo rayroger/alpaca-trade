@@ -39,6 +39,11 @@ on:
         required: false
         default: 'false'
         type: boolean
+      broker-exchanges:
+        description: 'Filter broker universe by exchanges (comma-separated: NYSE,NASDAQ,AMEX)'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   issues: write
@@ -76,6 +81,7 @@ jobs:
         STOCK_SELECTION_METHOD: ${{ inputs.selection-method || 'diversified' }}
         STOCK_SELECTION_LIMIT: '10'
         USE_BROKER_STOCK_UNIVERSE: ${{ inputs.use-broker-universe || 'false' }}
+        BROKER_EXCHANGES: ${{ inputs.broker-exchanges || '' }}
         # Execution settings
         LOG_LEVEL: ${{ inputs.log-level || 'INFO' }}
         DRY_RUN: ${{ inputs.dry-run || 'false' }}

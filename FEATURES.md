@@ -191,11 +191,37 @@ This will:
 2. Apply your selection method (e.g., top_gainers) to the broker-retrieved universe
 3. Return the top 10 gainers from ALL tradable stocks (not just the predefined 80)
 
+#### Filter by Exchange (Performance Optimization) - NEW!
+
+**Limit the broker universe to specific exchanges to reduce count and improve performance:**
+
+```bash
+export USE_DYNAMIC_STOCK_SELECTION=true
+export USE_BROKER_STOCK_UNIVERSE=true
+export BROKER_EXCHANGES=NYSE,NASDAQ  # Only NYSE and NASDAQ
+export STOCK_SELECTION_METHOD=top_gainers
+export STOCK_SELECTION_LIMIT=10
+```
+
+This addresses the concern about retrieving too many stocks:
+- **Without filter**: Retrieves all tradable stocks (could be thousands)
+- **With NYSE,NASDAQ filter**: Retrieves only stocks from major exchanges (typically 3,000-5,000)
+- **Performance**: Faster execution by focusing on liquid, well-known stocks
+
+**Supported exchanges:**
+- NYSE - New York Stock Exchange
+- NASDAQ - NASDAQ Stock Market
+- AMEX - American Stock Exchange
+- ARCA - NYSE Arca (ETFs)
+- BATS - BATS Exchange
+- And more...
+
 **Benefits:**
 - Always up-to-date with broker's available stocks
 - No manual maintenance of stock lists
 - Access to the full market, not just 80 stocks
 - Automatic filtering for tradable, liquid stocks
+- **NEW: Control universe size with exchange filters**
 
 **Note:** The predefined 80-stock universe is still the default (faster, API-friendly). Enable broker retrieval when you want access to the full market.
 
