@@ -58,9 +58,15 @@ def main():
         
         # Generate and execute signals
         trades_executed = []
+        symbols_analyzed = {}
+        all_signals = []
+        
         for symbol in config.TRADING_SYMBOLS:
-            signals = bot.generate_signals(symbol)
+            signals, metadata = bot.generate_signals_with_metadata(symbol)
+            symbols_analyzed[symbol] = metadata
+            
             if signals:
+                all_signals.extend(signals)
                 logger.info(f"{symbol} signals: {signals}")
                 
                 if not dry_run:
@@ -69,22 +75,40 @@ def main():
                 else:
                     logger.info(f"[DRY RUN] Would execute trades for {symbol}")
         
-        # Generate report
+        # Generate comprehensive daily report
+        daily_report = bot.generate_daily_report(
+            symbols_analyzed=symbols_analyzed,
+            all_signals=all_signals,
+            trades_executed=trades_executed
+        )
+        
+        # Generate legacy report (for compatibility)
         report = {
             "run_timestamp": datetime.now().isoformat(),
             "environment": "github_actions",
             "dry_run": dry_run,
             "account_equity": account_info['equity'],
             "trades_executed": trades_executed,
-            "signals_generated": len([s for s in [bot.generate_signals(sym) for sym in config.TRADING_SYMBOLS] if s])
+            "signals_generated": len(all_signals)
         }
         
-        # Save report
+        # Save both reports
         report_file = f"trading_report_{datetime.now().strftime('%Y%m%d')}.json"
+        daily_report_file = f"daily_report_{datetime.now().strftime('%Y%m%d')}.json"
+        
         with open(report_file, 'w') as f:
             json.dump(report, f, indent=2)
+        
+        with open(daily_report_file, 'w') as f:
+            json.dump(daily_report, f, indent=2)
             
-        logger.info(f"Trading bot completed successfully. Report saved to {report_file}")
+        logger.info(f"Trading bot completed successfully.")
+        logger.info(f"Report saved to {report_file}")
+        logger.info(f"Daily report saved to {daily_report_file}")
+        
+        # Log summary
+        logger.info(f"Summary: {len(all_signals)} signals generated, {len(trades_executed)} trades executed")
+        logger.info(f"Symbols analyzed: {len(symbols_analyzed)}, Symbols with signals: {daily_report['analysis']['symbols_with_signals']}")
         
     except Exception as e:
         logger.error(f"Trading bot failed: {str(e)}", exc_info=True)

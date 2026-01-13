@@ -65,6 +65,7 @@ jobs:
         path: |
           logs/
           trading_report_*.json
+          daily_report_*.json
         retention-days: 7
         
     - name: Send notification on failure
