@@ -9,7 +9,6 @@ import pandas as pd
 import numpy as np
 from ta.trend import MACD, EMAIndicator, SMAIndicator
 from ta.momentum import RSIIndicator
-from ta.volume import VolumeWeightedAveragePrice
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import MarketOrderRequest
@@ -347,7 +346,8 @@ class DailyTradingBot:
                     reasons.append(f"RSI overbought ({latest['rsi']:.2f})")
             
             # MACD Analysis
-            if not pd.isna(latest['macd']) and not pd.isna(previous['macd']):
+            if (not pd.isna(latest['macd']) and not pd.isna(previous['macd']) and
+                not pd.isna(latest['macd_signal']) and not pd.isna(previous['macd_signal'])):
                 # MACD crossover
                 if previous['macd'] < previous['macd_signal'] and latest['macd'] > latest['macd_signal']:
                     buy_signals += 1
@@ -357,7 +357,8 @@ class DailyTradingBot:
                     reasons.append("MACD bearish crossover")
             
             # Moving Average Analysis
-            if not pd.isna(latest['sma_20']) and not pd.isna(latest['sma_50']):
+            if (not pd.isna(latest['sma_20']) and not pd.isna(latest['sma_50']) and
+                not pd.isna(previous['sma_20']) and not pd.isna(previous['sma_50'])):
                 # Golden cross / Death cross
                 if previous['sma_20'] < previous['sma_50'] and latest['sma_20'] > latest['sma_50']:
                     buy_signals += 1
