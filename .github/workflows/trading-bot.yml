@@ -76,5 +76,5 @@ jobs:
             owner: context.repo.owner,
             repo: context.repo.repo,
             title: '⚠️ Trading Bot Failed',
-            body: `The trading bot failed at ${new Date().toISOString()}. Check the workflow run: ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+            body: `The trading bot failed at ${new Date().toISOString()}. Check the workflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
           })
