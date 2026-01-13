@@ -294,6 +294,109 @@ class DailyTradingBot:
             self.logger.error(f"Failed to analyze sentiment: {e}")
             return 'NEUTRAL', "Sentiment analysis unavailable"
     
+    def generate_signals_with_metadata(self, symbol):
+        """Generate trading signals with detailed metadata for reporting
+        
+        Returns:
+            Tuple of (signals, metadata) where:
+            - signals: List of tuples (action, reason)
+            - metadata: Dict with analysis details
+        """
+        signals = self.generate_signals(symbol)
+        
+        # Generate metadata by re-running analysis (lightweight)
+        metadata = {
+            'symbol': symbol,
+            'signals': signals,
+            'buy_count': 0,
+            'sell_count': 0,
+            'factors': []
+        }
+        
+        try:
+            df = self.get_historical_data(symbol)
+            if df is not None and len(df) >= 30:
+                df = self.calculate_technical_indicators(df)
+                if df is not None:
+                    latest = df.iloc[-1]
+                    previous = df.iloc[-2] if len(df) > 1 else latest
+                    
+                    # Count signals
+                    buy_signals = 0
+                    sell_signals = 0
+                    factors = []
+                    
+                    # RSI
+                    if not pd.isna(latest['rsi']):
+                        if latest['rsi'] < 30:
+                            buy_signals += 1
+                            factors.append(f"RSI oversold ({latest['rsi']:.2f})")
+                        elif latest['rsi'] > 70:
+                            sell_signals += 1
+                            factors.append(f"RSI overbought ({latest['rsi']:.2f})")
+                    
+                    # MACD
+                    if (not pd.isna(latest['macd']) and not pd.isna(previous['macd']) and
+                        not pd.isna(latest['macd_signal']) and not pd.isna(previous['macd_signal'])):
+                        if previous['macd'] < previous['macd_signal'] and latest['macd'] > latest['macd_signal']:
+                            buy_signals += 1
+                            factors.append("MACD bullish crossover")
+                        elif previous['macd'] > previous['macd_signal'] and latest['macd'] < latest['macd_signal']:
+                            sell_signals += 1
+                            factors.append("MACD bearish crossover")
+                    
+                    # Moving averages
+                    if (not pd.isna(latest['sma_20']) and not pd.isna(latest['sma_50']) and
+                        not pd.isna(previous['sma_20']) and not pd.isna(previous['sma_50'])):
+                        if previous['sma_20'] < previous['sma_50'] and latest['sma_20'] > latest['sma_50']:
+                            buy_signals += 1
+                            factors.append("Golden cross")
+                        elif previous['sma_20'] > previous['sma_50'] and latest['sma_20'] < latest['sma_50']:
+                            sell_signals += 1
+                            factors.append("Death cross")
+                        
+                        if latest['close'] > latest['sma_20'] > latest['sma_50']:
+                            buy_signals += 1
+                            factors.append("Price above rising MAs")
+                        elif latest['close'] < latest['sma_20'] < latest['sma_50']:
+                            sell_signals += 1
+                            factors.append("Price below falling MAs")
+                    
+                    # Volume, patterns, sentiment
+                    volume_signal, volume_reason = self.analyze_volume(df)
+                    pattern_signal, pattern_reason = self.detect_price_patterns(df)
+                    sentiment_signal, sentiment_reason = self.analyze_sentiment(symbol)
+                    
+                    if volume_signal == 'BULLISH':
+                        buy_signals += 1
+                        factors.append(volume_reason)
+                    elif volume_signal == 'BEARISH':
+                        sell_signals += 1
+                        factors.append(volume_reason)
+                    
+                    if pattern_signal == 'BULLISH':
+                        buy_signals += 1
+                        factors.append(pattern_reason)
+                    elif pattern_signal == 'BEARISH':
+                        sell_signals += 1
+                        factors.append(pattern_reason)
+                    
+                    if sentiment_signal == 'POSITIVE':
+                        buy_signals += 1
+                        factors.append(sentiment_reason)
+                    elif sentiment_signal == 'NEGATIVE':
+                        sell_signals += 1
+                        factors.append(sentiment_reason)
+                    
+                    metadata['buy_count'] = buy_signals
+                    metadata['sell_count'] = sell_signals
+                    metadata['factors'] = factors
+        
+        except Exception as e:
+            self.logger.error(f"Error generating metadata for {symbol}: {e}")
+        
+        return signals, metadata
+    
     def generate_signals(self, symbol):
         """Generate trading signals for a symbol
         
@@ -418,6 +521,82 @@ class DailyTradingBot:
         except Exception as e:
             self.logger.error(f"Error generating signals for {symbol}: {e}")
             return []
+    
+    def generate_daily_report(self, symbols_analyzed, all_signals, trades_executed=None):
+        """Generate comprehensive daily trading report
+        
+        Args:
+            symbols_analyzed: Dict mapping symbol to analysis data
+                {symbol: {'signals': [...], 'buy_count': int, 'sell_count': int, 'factors': [...]}}
+            all_signals: List of all signals generated across symbols
+            trades_executed: List of trades executed (optional)
+            
+        Returns:
+            Dict containing daily report data
+        """
+        try:
+            from datetime import datetime
+            
+            # Get account info
+            try:
+                account_info = self.get_account_info()
+            except Exception as e:
+                self.logger.warning(f"Could not fetch account info: {e}")
+                account_info = {'equity': 0, 'buying_power': 0, 'cash': 0}
+            
+            # Calculate statistics
+            total_symbols = len(symbols_analyzed)
+            symbols_with_signals = sum(1 for s in symbols_analyzed.values() if s.get('signals'))
+            total_buy_signals = sum(s.get('buy_count', 0) for s in symbols_analyzed.values())
+            total_sell_signals = sum(s.get('sell_count', 0) for s in symbols_analyzed.values())
+            
+            # Prepare symbol details
+            symbol_details = []
+            for symbol, data in symbols_analyzed.items():
+                signals = data.get('signals', [])
+                symbol_details.append({
+                    'symbol': symbol,
+                    'action': signals[0][0] if signals else 'HOLD',
+                    'reason': signals[0][1] if signals else 'No strong signal',
+                    'buy_indicators': data.get('buy_count', 0),
+                    'sell_indicators': data.get('sell_count', 0),
+                    'factors': data.get('factors', [])
+                })
+            
+            # Build report
+            report = {
+                'date': datetime.now().strftime('%Y-%m-%d'),
+                'timestamp': datetime.now().isoformat(),
+                'account': {
+                    'equity': account_info.get('equity', 0),
+                    'buying_power': account_info.get('buying_power', 0),
+                    'cash': account_info.get('cash', 0)
+                },
+                'analysis': {
+                    'symbols_analyzed': total_symbols,
+                    'symbols_with_signals': symbols_with_signals,
+                    'total_buy_signals': total_buy_signals,
+                    'total_sell_signals': total_sell_signals,
+                    'signals_generated': len(all_signals)
+                },
+                'symbols': symbol_details,
+                'trades': trades_executed if trades_executed else [],
+                'summary': {
+                    'trades_executed': len(trades_executed) if trades_executed else 0,
+                    'expected_daily_trades': '0-3 (conservative)',
+                    'signal_threshold': '≥3 indicators required'
+                }
+            }
+            
+            return report
+            
+        except Exception as e:
+            self.logger.error(f"Error generating daily report: {e}")
+            return {
+                'error': str(e),
+                'date': datetime.now().strftime('%Y-%m-%d'),
+                'timestamp': datetime.now().isoformat()
+            }
     
     def execute_trades(self, symbol, signals):
         """Execute trades with rate limiting for GitHub Actions"""

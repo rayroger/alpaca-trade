@@ -349,5 +349,157 @@ class TestTechnicalIndicatorEdgeCases(unittest.TestCase):
         self.assertIsNone(reason)
 
 
+class TestDailyReport(unittest.TestCase):
+    """Test suite for daily report generation"""
+    
+    def setUp(self):
+        """Set up test fixtures"""
+        self.mock_config = Mock(spec=Config)
+        self.mock_config.ALPACA_API_KEY = "test_key"
+        self.mock_config.ALPACA_SECRET = "test_secret"
+        self.mock_config.APCA_PAPER = True
+        self.mock_config.DRY_RUN = True
+    
+    @patch('bot.TradingClient')
+    @patch('bot.StockHistoricalDataClient')
+    def test_generate_daily_report(self, mock_data_client, mock_trading_client):
+        """Test daily report generation"""
+        bot = DailyTradingBot(self.mock_config)
+        
+        # Mock account info
+        bot.get_account_info = Mock(return_value={
+            'equity': 10000.0,
+            'buying_power': 5000.0,
+            'cash': 2000.0
+        })
+        
+        # Create sample analysis data
+        symbols_analyzed = {
+            'AAPL': {
+                'signals': [('BUY', 'BUY: RSI oversold, MACD bullish crossover, High volume breakout')],
+                'buy_count': 4,
+                'sell_count': 0,
+                'factors': ['RSI oversold (25.5)', 'MACD bullish crossover', 'High volume breakout', 'Golden cross']
+            },
+            'GOOG': {
+                'signals': [],
+                'buy_count': 2,
+                'sell_count': 1,
+                'factors': ['RSI neutral', 'Volume normal']
+            }
+        }
+        
+        all_signals = [('BUY', 'BUY: RSI oversold, MACD bullish crossover, High volume breakout')]
+        
+        trades_executed = [
+            {'symbol': 'AAPL', 'action': 'BUY', 'shares': 10, 'price': 150.0}
+        ]
+        
+        report = bot.generate_daily_report(symbols_analyzed, all_signals, trades_executed)
+        
+        # Verify report structure
+        self.assertIn('date', report)
+        self.assertIn('timestamp', report)
+        self.assertIn('account', report)
+        self.assertIn('analysis', report)
+        self.assertIn('symbols', report)
+        self.assertIn('trades', report)
+        self.assertIn('summary', report)
+        
+        # Verify account data
+        self.assertEqual(report['account']['equity'], 10000.0)
+        self.assertEqual(report['account']['buying_power'], 5000.0)
+        
+        # Verify analysis data
+        self.assertEqual(report['analysis']['symbols_analyzed'], 2)
+        self.assertEqual(report['analysis']['symbols_with_signals'], 1)
+        self.assertEqual(report['analysis']['total_buy_signals'], 6)  # 4 from AAPL + 2 from GOOG
+        self.assertEqual(report['analysis']['total_sell_signals'], 1)
+        self.assertEqual(report['analysis']['signals_generated'], 1)
+        
+        # Verify symbol details
+        self.assertEqual(len(report['symbols']), 2)
+        aapl_detail = next(s for s in report['symbols'] if s['symbol'] == 'AAPL')
+        self.assertEqual(aapl_detail['action'], 'BUY')
+        self.assertEqual(aapl_detail['buy_indicators'], 4)
+        
+        # Verify trades
+        self.assertEqual(len(report['trades']), 1)
+        self.assertEqual(report['trades'][0]['symbol'], 'AAPL')
+        
+        # Verify summary
+        self.assertEqual(report['summary']['trades_executed'], 1)
+        self.assertIn('expected_daily_trades', report['summary'])
+    
+    @patch('bot.TradingClient')
+    @patch('bot.StockHistoricalDataClient')
+    def test_generate_daily_report_empty(self, mock_data_client, mock_trading_client):
+        """Test daily report with no signals"""
+        bot = DailyTradingBot(self.mock_config)
+        
+        # Mock account info
+        bot.get_account_info = Mock(return_value={
+            'equity': 10000.0,
+            'buying_power': 5000.0,
+            'cash': 2000.0
+        })
+        
+        symbols_analyzed = {
+            'AAPL': {
+                'signals': [],
+                'buy_count': 1,
+                'sell_count': 1,
+                'factors': []
+            }
+        }
+        
+        all_signals = []
+        trades_executed = []
+        
+        report = bot.generate_daily_report(symbols_analyzed, all_signals, trades_executed)
+        
+        # Verify report
+        self.assertEqual(report['analysis']['symbols_analyzed'], 1)
+        self.assertEqual(report['analysis']['symbols_with_signals'], 0)
+        self.assertEqual(report['analysis']['signals_generated'], 0)
+        self.assertEqual(report['summary']['trades_executed'], 0)
+    
+    @patch('bot.TradingClient')
+    @patch('bot.StockHistoricalDataClient')
+    def test_generate_signals_with_metadata(self, mock_data_client, mock_trading_client):
+        """Test generate_signals_with_metadata returns both signals and metadata"""
+        bot = DailyTradingBot(self.mock_config)
+        
+        # Create sample data
+        dates = pd.date_range(end=datetime.now(pytz.UTC), periods=60, freq='D')
+        sample_data = pd.DataFrame({
+            'open': np.random.uniform(100, 110, 60),
+            'high': np.random.uniform(110, 115, 60),
+            'low': np.random.uniform(95, 100, 60),
+            'close': np.random.uniform(100, 110, 60),
+            'volume': np.random.uniform(1000000, 5000000, 60)
+        }, index=dates)
+        
+        # Mock get_historical_data
+        with patch.object(bot, 'get_historical_data', return_value=sample_data):
+            signals, metadata = bot.generate_signals_with_metadata('AAPL')
+        
+        # Verify return types
+        self.assertIsInstance(signals, list)
+        self.assertIsInstance(metadata, dict)
+        
+        # Verify metadata structure
+        self.assertIn('symbol', metadata)
+        self.assertIn('signals', metadata)
+        self.assertIn('buy_count', metadata)
+        self.assertIn('sell_count', metadata)
+        self.assertIn('factors', metadata)
+        
+        self.assertEqual(metadata['symbol'], 'AAPL')
+        self.assertIsInstance(metadata['buy_count'], int)
+        self.assertIsInstance(metadata['sell_count'], int)
+        self.assertIsInstance(metadata['factors'], list)
+
+
 if __name__ == '__main__':
     unittest.main()
