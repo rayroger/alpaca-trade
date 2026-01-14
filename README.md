@@ -32,7 +32,36 @@ Trades are only attempted on weekdays and skipped on public holidays or market-c
 The DailyTradingBot initialization prepares Alpaca clients for data and trading.
 Signal Generation:
 
-The generate_signals method analyzes pre-configured trading symbols for buy/sell signals. Placeholder logic hints at using technical indicators, volume analysis, and price patterns in its full implementation.
+The generate_signals method analyzes pre-configured trading symbols for buy/sell signals. he method generate_signals in the DailyTradingBot class determines "strong signals" using the following criteria:
+
+Buy Signals:
+
+Accumulated based on factors like:
+RSI Analysis: RSI < 30 (Oversold).
+MACD Crossover: MACD moving over its signal line ("MACD bullish crossover").
+Moving Averages:
+"Golden Cross" (short-term SMA moves above long-term SMA).
+Current price is above rising SMAs.
+Volume Analysis: Detecting bullish volume trends like "High Volume Breakout."
+Price Patterns: Positive bullish pattern detection.
+Sentiment Analysis: Positive news sentiment.
+At least 3 different buy indicators are needed to trigger a strong "BUY" signal.
+Sell Signals:
+
+Accumulated based on factors like:
+RSI Analysis: RSI > 70 (Overbought).
+MACD Crossover: MACD falling below its signal line ("MACD bearish crossover").
+Moving Averages:
+"Death Cross" (short-term SMA falls below long-term SMA).
+Current price is below falling SMAs.
+Volume Analysis: Bearish volume trends.
+Price Patterns: Negative bearish pattern detection.
+Sentiment Analysis: Negative news sentiment.
+At least 3 different sell indicators are needed to trigger a strong "SELL" signal.
+No Strong Signal:
+
+If neither buy nor sell signals meet the threshold (≥3 indicators), no strong signal is generated.
+The bot logs the considered factors and their results for debugging.
 Trade Execution:
 
 If signals exist, trades are executed sequentially, adhering to rate-limiting policies.
