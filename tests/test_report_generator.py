@@ -1,6 +1,6 @@
 # tests/test_report_generator.py
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, mock_open, MagicMock
 import json
 import sys
 from pathlib import Path
@@ -150,8 +150,6 @@ class TestDailyReportGenerator(unittest.TestCase):
     
     def test_save_html_report(self):
         """Test saving HTML report to file"""
-        from unittest.mock import mock_open, MagicMock
-        
         # Mock both the load_daily_reports method and file write
         with patch.object(self.generator, 'load_daily_reports', return_value=[]):
             with patch('builtins.open', mock_open()) as mock_file:
@@ -187,8 +185,6 @@ class TestDailyReportGenerator(unittest.TestCase):
     def test_save_html_report_empty_data(self):
         """Test saving HTML report with empty data"""
         # Empty dict should now work - it will generate a report with default values
-        from unittest.mock import mock_open, MagicMock
-        
         with patch.object(self.generator, 'load_daily_reports', return_value=[]):
             with patch('builtins.open', mock_open()) as mock_file:
                 with patch('pathlib.Path.exists', return_value=True):
