@@ -15,6 +15,9 @@ from report_generator import DailyReportGenerator
 class TestDailyReportGenerator(unittest.TestCase):
     """Test suite for DailyReportGenerator"""
     
+    # Test constants
+    MOCK_FILE_SIZE = 10566  # Expected size of generated HTML report in bytes
+    
     def setUp(self):
         """Set up test fixtures"""
         self.generator = DailyReportGenerator()
@@ -155,7 +158,7 @@ class TestDailyReportGenerator(unittest.TestCase):
                 # Mock Path.exists() and Path.stat() to simulate successful file creation
                 with patch('pathlib.Path.exists', return_value=True):
                     with patch('pathlib.Path.stat') as mock_stat:
-                        mock_stat.return_value = MagicMock(st_size=10566)
+                        mock_stat.return_value = MagicMock(st_size=self.MOCK_FILE_SIZE)
                         
                         path = self.generator.save_html_report(self.sample_report)
                         
@@ -190,7 +193,7 @@ class TestDailyReportGenerator(unittest.TestCase):
             with patch('builtins.open', mock_open()) as mock_file:
                 with patch('pathlib.Path.exists', return_value=True):
                     with patch('pathlib.Path.stat') as mock_stat:
-                        mock_stat.return_value = MagicMock(st_size=10566)
+                        mock_stat.return_value = MagicMock(st_size=self.MOCK_FILE_SIZE)
                         path = self.generator.save_html_report({})
                         self.assertIsInstance(path, str)
     

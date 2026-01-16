@@ -48,6 +48,24 @@ class DailyReportGenerator:
         
         return reports
     
+    def _validate_report_data(self, report: Any, method_name: str) -> None:
+        """Validate report data input
+        
+        Args:
+            report: The report data to validate
+            method_name: Name of the calling method for error messages
+            
+        Raises:
+            ValueError: If report is None or not a dictionary
+        """
+        if report is None:
+            self.logger.error(f"Cannot {method_name}: report is None")
+            raise ValueError("Report data cannot be None")
+        
+        if not isinstance(report, dict):
+            self.logger.error(f"Cannot {method_name}: report must be a dictionary, got {type(report)}")
+            raise ValueError("Report data must be a dictionary")
+    
     def load_trading_logs(self, log_dir: str = "logs") -> pd.DataFrame:
         """Load and parse trading logs into a DataFrame"""
         log_path = Path(log_dir)
@@ -359,14 +377,8 @@ class DailyReportGenerator:
     def generate_html_report(self, report: Dict[str, Any], historical_reports: Optional[List[Dict[str, Any]]] = None) -> str:
         """Generate complete HTML report"""
         try:
-            # Validate input - report must be a non-None dictionary
-            if report is None:
-                self.logger.error("Cannot generate HTML report: report is None")
-                raise ValueError("Report data cannot be None")
-            
-            if not isinstance(report, dict):
-                self.logger.error(f"Cannot generate HTML report: report must be a dictionary, got {type(report)}")
-                raise ValueError("Report data must be a dictionary")
+            # Validate input
+            self._validate_report_data(report, "generate HTML report")
             
             if historical_reports is None:
                 self.logger.debug("Loading historical reports for context")
@@ -527,14 +539,8 @@ class DailyReportGenerator:
     def save_html_report(self, report: Dict[str, Any], filename: Optional[str] = None) -> str:
         """Generate and save HTML report to file"""
         try:
-            # Validate input - report must be a non-None dictionary
-            if report is None:
-                self.logger.error("Cannot save HTML report: report is None")
-                raise ValueError("Report data cannot be None")
-            
-            if not isinstance(report, dict):
-                self.logger.error(f"Cannot save HTML report: report must be a dictionary, got {type(report)}")
-                raise ValueError("Report data must be a dictionary")
+            # Validate input
+            self._validate_report_data(report, "save HTML report")
             
             # Ensure reports directory exists
             if not self.reports_dir.exists():
