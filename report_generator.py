@@ -19,7 +19,14 @@ class DailyReportGenerator:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.reports_dir = Path("reports")
-        self.reports_dir.mkdir(exist_ok=True)
+        
+        # Ensure reports directory exists
+        try:
+            self.reports_dir.mkdir(exist_ok=True)
+            self.logger.info(f"Reports directory initialized: {self.reports_dir.absolute()}")
+        except Exception as e:
+            self.logger.error(f"Failed to create reports directory: {str(e)}", exc_info=True)
+            raise
     
     def load_daily_reports(self, days: int = 30) -> List[Dict[str, Any]]:
         """Load daily reports from the last N days"""
@@ -40,6 +47,24 @@ class DailyReportGenerator:
                     self.logger.warning(f"Could not load {report_file}: {e}")
         
         return reports
+    
+    def _validate_report_data(self, report: Any, method_name: str) -> None:
+        """Validate report data input
+        
+        Args:
+            report: The report data to validate
+            method_name: Name of the calling method for error messages
+            
+        Raises:
+            ValueError: If report is None or not a dictionary
+        """
+        if report is None:
+            self.logger.error(f"Cannot {method_name}: report is None")
+            raise ValueError("Report data cannot be None")
+        
+        if not isinstance(report, dict):
+            self.logger.error(f"Cannot {method_name}: report must be a dictionary, got {type(report)}")
+            raise ValueError("Report data must be a dictionary")
     
     def load_trading_logs(self, log_dir: str = "logs") -> pd.DataFrame:
         """Load and parse trading logs into a DataFrame"""
@@ -351,27 +376,32 @@ class DailyReportGenerator:
     
     def generate_html_report(self, report: Dict[str, Any], historical_reports: Optional[List[Dict[str, Any]]] = None) -> str:
         """Generate complete HTML report"""
-        if historical_reports is None:
-            historical_reports = self.load_daily_reports(30)
-        
-        # Ensure current report is in the list (use set for deduplication by date)
-        report_date = report.get('date')
-        seen_dates = {report_date}
-        all_reports = [report]
-        
-        for r in historical_reports:
-            r_date = r.get('date')
-            if r_date not in seen_dates:
-                all_reports.append(r)
-                seen_dates.add(r_date)
-        
-        # Sort and limit
-        all_reports = sorted(all_reports, key=lambda x: x.get('date', ''), reverse=True)[:30]
-        
-        date = report.get('date', 'Unknown')
-        timestamp = report.get('timestamp', 'Unknown')
-        
-        html = f"""
+        try:
+            # Validate input
+            self._validate_report_data(report, "generate HTML report")
+            
+            if historical_reports is None:
+                self.logger.debug("Loading historical reports for context")
+                historical_reports = self.load_daily_reports(30)
+            
+            # Ensure current report is in the list (use set for deduplication by date)
+            report_date = report.get('date')
+            seen_dates = {report_date}
+            all_reports = [report]
+            
+            for r in historical_reports:
+                r_date = r.get('date')
+                if r_date not in seen_dates:
+                    all_reports.append(r)
+                    seen_dates.add(r_date)
+            
+            # Sort and limit
+            all_reports = sorted(all_reports, key=lambda x: x.get('date', ''), reverse=True)[:30]
+            
+            date = report.get('date', 'Unknown')
+            timestamp = report.get('timestamp', 'Unknown')
+            
+            html = f"""
         <!DOCTYPE html>
         <html>
         <head>
@@ -499,26 +529,51 @@ class DailyReportGenerator:
         </body>
         </html>
         """
-        
-        return html
+            
+            self.logger.info(f"Successfully generated HTML report for date: {report.get('date', 'Unknown')}")
+            return html
+        except Exception as e:
+            self.logger.error(f"Failed to generate HTML report: {str(e)}", exc_info=True)
+            raise
     
     def save_html_report(self, report: Dict[str, Any], filename: Optional[str] = None) -> str:
         """Generate and save HTML report to file"""
-        if filename is None:
-            date = report.get('date', datetime.now().strftime('%Y-%m-%d'))
-            filename = f"daily_report_{date.replace('-', '')}.html"
+        try:
+            # Validate input
+            self._validate_report_data(report, "save HTML report")
+            
+            # Ensure reports directory exists
+            if not self.reports_dir.exists():
+                self.logger.warning(f"Reports directory {self.reports_dir} does not exist, creating it")
+                self.reports_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Generate filename
+            if filename is None:
+                date = report.get('date', datetime.now().strftime('%Y-%m-%d'))
+                filename = f"daily_report_{date.replace('-', '')}.html"
+            
+            report_path = self.reports_dir / filename
+            self.logger.debug(f"Saving HTML report to: {report_path}")
+            
+            # Generate HTML
+            html = self.generate_html_report(report)
+            
+            # Save to file
+            with open(report_path, 'w', encoding='utf-8') as f:
+                f.write(html)
+            
+            # Verify file was created
+            if not report_path.exists():
+                self.logger.error(f"HTML report file was not created at {report_path}")
+                raise IOError(f"Failed to create HTML report file at {report_path}")
+            
+            file_size = report_path.stat().st_size
+            self.logger.info(f"HTML report saved successfully to {report_path} ({file_size} bytes)")
+            return str(report_path)
         
-        report_path = self.reports_dir / filename
-        
-        # Generate HTML
-        html = self.generate_html_report(report)
-        
-        # Save to file
-        with open(report_path, 'w', encoding='utf-8') as f:
-            f.write(html)
-        
-        self.logger.info(f"HTML report saved to {report_path}")
-        return str(report_path)
+        except Exception as e:
+            self.logger.error(f"Failed to save HTML report: {str(e)}", exc_info=True)
+            raise
     
     def generate_markdown_summary(self, report: Dict[str, Any]) -> str:
         """Generate a markdown summary for quick viewing"""
