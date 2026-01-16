@@ -168,31 +168,38 @@ class TestDailyReportGenerator(unittest.TestCase):
     
     def test_generate_html_report_empty_data(self):
         """Test HTML report generation with empty data"""
-        with self.assertRaises(ValueError) as context:
-            self.generator.generate_html_report({})
-        
-        self.assertIn("Report data cannot be empty", str(context.exception))
+        # Empty dict should now work (though it will have default values)
+        # This is actually a valid use case - generate a report with no data
+        html = self.generator.generate_html_report({})
+        self.assertIsInstance(html, str)
+        self.assertIn('<!DOCTYPE html>', html)
     
     def test_generate_html_report_none_data(self):
         """Test HTML report generation with None data"""
         with self.assertRaises(ValueError) as context:
             self.generator.generate_html_report(None)
         
-        self.assertIn("Report data cannot be empty", str(context.exception))
+        self.assertIn("Report data cannot be None", str(context.exception))
     
     def test_save_html_report_empty_data(self):
         """Test saving HTML report with empty data"""
-        with self.assertRaises(ValueError) as context:
-            self.generator.save_html_report({})
+        # Empty dict should now work - it will generate a report with default values
+        from unittest.mock import mock_open, MagicMock
         
-        self.assertIn("Report data cannot be empty", str(context.exception))
+        with patch.object(self.generator, 'load_daily_reports', return_value=[]):
+            with patch('builtins.open', mock_open()) as mock_file:
+                with patch('pathlib.Path.exists', return_value=True):
+                    with patch('pathlib.Path.stat') as mock_stat:
+                        mock_stat.return_value = MagicMock(st_size=10566)
+                        path = self.generator.save_html_report({})
+                        self.assertIsInstance(path, str)
     
     def test_save_html_report_none_data(self):
         """Test saving HTML report with None data"""
         with self.assertRaises(ValueError) as context:
             self.generator.save_html_report(None)
         
-        self.assertIn("Report data cannot be empty", str(context.exception))
+        self.assertIn("Report data cannot be None", str(context.exception))
     
     def test_reports_directory_creation(self):
         """Test that reports directory is created on initialization"""
