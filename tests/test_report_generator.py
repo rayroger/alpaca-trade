@@ -1,6 +1,6 @@
 # tests/test_report_generator.py
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, mock_open, MagicMock
 import json
 import sys
 from pathlib import Path
@@ -14,6 +14,9 @@ from report_generator import DailyReportGenerator
 
 class TestDailyReportGenerator(unittest.TestCase):
     """Test suite for DailyReportGenerator"""
+    
+    # Test constants
+    MOCK_FILE_SIZE = 10566  # Expected size of generated HTML report in bytes
     
     def setUp(self):
         """Set up test fixtures"""
@@ -147,19 +150,61 @@ class TestDailyReportGenerator(unittest.TestCase):
     
     def test_save_html_report(self):
         """Test saving HTML report to file"""
-        from unittest.mock import mock_open
-        
         # Mock both the load_daily_reports method and file write
         with patch.object(self.generator, 'load_daily_reports', return_value=[]):
             with patch('builtins.open', mock_open()) as mock_file:
-                path = self.generator.save_html_report(self.sample_report)
-                
-                self.assertIsInstance(path, str)
-                self.assertIn('daily_report_', path)
-                self.assertIn('.html', path)
-                
-                # Verify file was opened for writing (check that it was called)
-                self.assertTrue(mock_file.called)
+                # Mock Path.exists() and Path.stat() to simulate successful file creation
+                with patch('pathlib.Path.exists', return_value=True):
+                    with patch('pathlib.Path.stat') as mock_stat:
+                        mock_stat.return_value = MagicMock(st_size=self.MOCK_FILE_SIZE)
+                        
+                        path = self.generator.save_html_report(self.sample_report)
+                        
+                        self.assertIsInstance(path, str)
+                        self.assertIn('daily_report_', path)
+                        self.assertIn('.html', path)
+                        
+                        # Verify file was opened for writing (check that it was called)
+                        self.assertTrue(mock_file.called)
+    
+    def test_generate_html_report_empty_data(self):
+        """Test HTML report generation with empty data"""
+        # Empty dict should now work (though it will have default values)
+        # This is actually a valid use case - generate a report with no data
+        html = self.generator.generate_html_report({})
+        self.assertIsInstance(html, str)
+        self.assertIn('<!DOCTYPE html>', html)
+    
+    def test_generate_html_report_none_data(self):
+        """Test HTML report generation with None data"""
+        with self.assertRaises(ValueError) as context:
+            self.generator.generate_html_report(None)
+        
+        self.assertIn("Report data cannot be None", str(context.exception))
+    
+    def test_save_html_report_empty_data(self):
+        """Test saving HTML report with empty data"""
+        # Empty dict should now work - it will generate a report with default values
+        with patch.object(self.generator, 'load_daily_reports', return_value=[]):
+            with patch('builtins.open', mock_open()) as mock_file:
+                with patch('pathlib.Path.exists', return_value=True):
+                    with patch('pathlib.Path.stat') as mock_stat:
+                        mock_stat.return_value = MagicMock(st_size=self.MOCK_FILE_SIZE)
+                        path = self.generator.save_html_report({})
+                        self.assertIsInstance(path, str)
+    
+    def test_save_html_report_none_data(self):
+        """Test saving HTML report with None data"""
+        with self.assertRaises(ValueError) as context:
+            self.generator.save_html_report(None)
+        
+        self.assertIn("Report data cannot be None", str(context.exception))
+    
+    def test_reports_directory_creation(self):
+        """Test that reports directory is created on initialization"""
+        # The generator already created it in setUp, so we verify it exists
+        self.assertTrue(self.generator.reports_dir.exists())
+        self.assertEqual(self.generator.reports_dir.name, 'reports')
 
 
 if __name__ == '__main__':

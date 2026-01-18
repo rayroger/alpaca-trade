@@ -18,6 +18,8 @@ The bot now automatically generates comprehensive visual reports that include:
    - Professional, web-based daily status reports
    - Interactive charts and visualizations
    - Color-coded tables for easy reading
+   - **Robust error handling and validation** ensures reports are always generated
+   - Detailed logging for debugging any issues
    - Includes:
      - Account summary (equity, buying power, cash)
      - Trading activity statistics
