@@ -501,5 +501,75 @@ class TestDailyReport(unittest.TestCase):
         self.assertIsInstance(metadata['factors'], list)
 
 
+class TestShouldRunToday(unittest.TestCase):
+    """Test suite for the should_run_today method"""
+
+    def setUp(self):
+        self.mock_config = Mock(spec=Config)
+        self.mock_config.ALPACA_API_KEY = "test_key"
+        self.mock_config.ALPACA_SECRET = "test_secret"
+        self.mock_config.APCA_PAPER = True
+        self.mock_config.DRY_RUN = True
+
+    @patch('bot.TradingClient')
+    @patch('bot.StockHistoricalDataClient')
+    def test_should_run_today_market_open(self, mock_data_client, mock_trading_client):
+        """Test should_run_today returns True when market is open"""
+        bot = DailyTradingBot(self.mock_config)
+
+        mock_clock = Mock()
+        mock_clock.is_open = True
+        bot.trading_client.get_clock = Mock(return_value=mock_clock)
+
+        mock_now = Mock()
+        mock_now.weekday.return_value = 1  # Tuesday
+        mock_now.year = 2024
+        mock_now.date.return_value = datetime(2024, 1, 2).date()
+
+        with patch('bot.datetime') as mock_dt:
+            mock_dt.now.return_value.astimezone.return_value = mock_now
+            result = bot.should_run_today()
+
+        self.assertTrue(result)
+
+    @patch('bot.TradingClient')
+    @patch('bot.StockHistoricalDataClient')
+    def test_should_run_today_market_closed(self, mock_data_client, mock_trading_client):
+        """Test should_run_today returns False when market is closed (e.g. pre-market hours)"""
+        bot = DailyTradingBot(self.mock_config)
+
+        mock_clock = Mock()
+        mock_clock.is_open = False
+        bot.trading_client.get_clock = Mock(return_value=mock_clock)
+
+        et = pytz.timezone('US/Eastern')
+        mock_now = Mock()
+        mock_now.weekday.return_value = 1  # Tuesday
+        mock_now.year = 2024
+        mock_now.date.return_value = datetime(2024, 1, 2).date()
+
+        with patch('bot.datetime') as mock_dt:
+            mock_dt.now.return_value.astimezone.return_value = mock_now
+            result = bot.should_run_today()
+
+        self.assertFalse(result)
+
+    @patch('bot.TradingClient')
+    @patch('bot.StockHistoricalDataClient')
+    def test_should_run_today_weekend(self, mock_data_client, mock_trading_client):
+        """Test should_run_today returns False on weekends"""
+        bot = DailyTradingBot(self.mock_config)
+
+        et = pytz.timezone('US/Eastern')
+        mock_now = Mock()
+        mock_now.weekday.return_value = 5  # Saturday
+
+        with patch('bot.datetime') as mock_dt:
+            mock_dt.now.return_value.astimezone.return_value = mock_now
+            result = bot.should_run_today()
+
+        self.assertFalse(result)
+
+
 if __name__ == '__main__':
     unittest.main()
