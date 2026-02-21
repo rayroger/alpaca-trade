@@ -1,9 +1,10 @@
 name: Daily Trading Bot
 on:
   schedule:
-    # Runs at 8:30 AM ET (12:30 UTC or 13:30 UTC depending on DST)
-    - cron: '30 12 * * 1-5'  # Monday-Friday at 12:30 UTC (8:30 AM ET)
-    # Alternative for DST: '30 13 * * 1-5' (1:30 PM UTC = 9:30 AM ET)
+    # Runs at 15:30 UTC Monday-Friday, which is always during market hours:
+    # EST (UTC-5, Nov-Mar): 10:30 AM ET
+    # EDT (UTC-4, Mar-Nov): 11:30 AM ET
+    - cron: '30 15 * * 1-5'
   
   # Allow manual trigger from GitHub UI
   workflow_dispatch:
